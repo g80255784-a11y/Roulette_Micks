@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Колесо Фортуны</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
+        }
+        
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #ff6b6b, #ffa500, #ffd700, #90ee90, 
+                #87ceeb, #9370db, #ff69b4, #ff6b6b
+            );
+            position: relative;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: #ff4757;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 10;
+        }
+        
+        .spin-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+        }
+        
+        .spin-btn:hover {
+            background: #ff4757;
+            transform: scale(1.05);
+        }
+        
+        .spin-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .closed-text {
+            color: #ff4757;
+            font-weight: bold;
+            text-decoration: line-through;
+        }
+        
+        .prizes-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .prize-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .stats {
+            background: #f1f3f4;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎡 Колесо Фортуны 🎡</h1>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <div id="wheel"></div>
+        </div>
+        
+        <button id="spinBtn" class="spin-btn">
+            <span>Крутить рулетку!</span>
+            <span class="closed-text" style="display: none;">РУЛЕТКА ЗАКРЫТА</span>
+        </button>
+        
+        <div class="stats">
+            <h3>Статистика:</h3>
+            <p>Всего круток: <span id="totalSpins">0</span></p>
+            <p>Участников: <span id="totalUsers">0</span></p>
+            <p>Статус: <span id="status">Открыта</span></p>
+        </div>
+        
+        <div class="prizes">
+            <h3>Призы:</h3>
+            <div class="prizes-list" id="prizesList">
+                <!-- Призы будут добавляться здесь -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isSpinning = false;
+        let totalSpins = 0;
+        let totalUsers = 0;
+        let isWheelOpen = true;
+        let prizes = ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз'];
+        
+        // Инициализация призов
+        function initPrizes() {
+            const prizesList = document.getElementById('prizesList');
+            prizesList.innerHTML = '';
+            prizes.forEach(prize => {
+                const prizeElement = document.createElement('div');
+                prizeElement.className = 'prize-item';
+                prizeElement.textContent = prize;
+                prizesList.appendChild(prizeElement);
+            });
+        }
+        
+        // Функция вращения
+        function spinWheel() {
+            if (!isWheelOpen || isSpinning) return;
+            
+            isSpinning = true;
+            totalSpins++;
+            document.getElementById('totalSpins').textContent = totalSpins;
+            
+            const wheel = document.getElementById('wheel');
+            const degrees = 1800 + Math.random() * 1800;
+            
+            wheel.style.transform = `rotate(${degrees}deg)`;
+            
+            setTimeout(() => {
+                isSpinning = false;
+                // Здесь можно добавить логику определения выигрыша
+                alert(`Вы выиграли: ${prizes[Math.floor(Math.random() * prizes.length)]}`);
+            }, 4000);
+        }
+        
+        // Обновление статуса рулетки
+        function updateWheelStatus() {
+            const spinBtn = document.getElementById('spinBtn');
+            const statusText = document.getElementById('status');
+            const closedText = spinBtn.querySelector('.closed-text');
+            const normalText = spinBtn.querySelector('span:first-child');
+            
+            if (isWheelOpen) {
+                spinBtn.disabled = false;
+                normalText.style.display = 'inline';
+                closedText.style.display = 'none';
+                statusText.textContent = 'Открыта';
+                statusText.style.color = 'green';
+            } else {
+                spinBtn.disabled = true;
+                normalText.style.display = 'none';
+                closedText.style.display = 'inline';
+                statusText.textContent = 'Закрыта';
+                statusText.style.color = 'red';
+            }
+        }
+        
+        // Имитация получения данных с сервера
+        function fetchData() {
+            // В реальном приложении здесь был бы fetch запрос
+            setTimeout(() => {
+                // Обновляем данные каждые 5 секунд
+                totalUsers = Math.floor(Math.random() * 100) + 50;
+                document.getElementById('totalUsers').textContent = totalUsers;
+                fetchData();
+            }, 5000);
+        }
+        
+        // Инициализация
+        document.getElementById('spinBtn').addEventListener('click', spinWheel);
+        initPrizes();
+        updateWheelStatus();
+        fetchData();
+        
+        // Для тестирования - можно менять статус в консоли
+        window.toggleWheel = function() {
+            isWheelOpen = !isWheelOpen;
+            updateWheelStatus();
+        };
+    </script>
+</body>
+</html>
