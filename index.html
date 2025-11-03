@@ -34,13 +34,18 @@
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            background: conic-gradient(
-                #ff6b6b, #ffa500, #ffd700, #90ee90, 
-                #87ceeb, #9370db, #ff69b4, #ff6b6b
-            );
             position: relative;
             transition: transform 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
             box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            transform: rotate(0deg);
+        }
+        
+        .wheel-segment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%);
+            transform-origin: center;
         }
         
         .pointer {
@@ -96,6 +101,7 @@
             padding: 10px;
             border-radius: 8px;
             border: 2px solid #e9ecef;
+            text-align: center;
         }
         
         .stats {
@@ -175,7 +181,9 @@
         
         <div class="wheel-container">
             <div class="pointer"></div>
-            <div id="wheel"></div>
+            <div id="wheel">
+                <!-- Сегменты рулетки будут создаваться динамически -->
+            </div>
         </div>
         
         <button id="spinBtn" class="spin-btn">
@@ -214,16 +222,47 @@
     </div>
 
     <script>
+        // Загрузка данных из localStorage
+        let wheelData = JSON.parse(localStorage.getItem('wheelData')) || {
+            isWheelOpen: true,
+            totalSpins: 0,
+            totalUsers: 85,
+            prizes: ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз']
+        };
+
         let isSpinning = false;
-        let totalSpins = 0;
-        let totalUsers = 0;
-        let isWheelOpen = true;
-        let prizes = ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз'];
-        
+        const colors = ['#ff6b6b', '#ffa500', '#ffd700', '#90ee90', '#87ceeb', '#9370db', '#ff69b4', '#20b2aa'];
+
         // Элементы модального окна
         const adminBtn = document.getElementById('adminBtn');
         const loginModal = document.getElementById('loginModal');
         const errorDiv = document.getElementById('error');
+
+        // Инициализация рулетки
+        function initWheel() {
+            const wheel = document.getElementById('wheel');
+            wheel.innerHTML = '';
+            
+            const segmentAngle = 360 / wheelData.prizes.length;
+            
+            wheelData.prizes.forEach((prize, index) => {
+                const segment = document.createElement('div');
+                segment.className = 'wheel-segment';
+                segment.style.transform = `rotate(${index * segmentAngle}deg)`;
+                segment.style.backgroundColor = colors[index % colors.length];
+                wheel.appendChild(segment);
+            });
+            
+            updateDisplay();
+        }
+
+        // Обновление отображения
+        function updateDisplay() {
+            document.getElementById('totalSpins').textContent = wheelData.totalSpins;
+            document.getElementById('totalUsers').textContent = wheelData.totalUsers;
+            updateWheelStatus();
+            initPrizes();
+        }
 
         // Открыть модальное окно при клике на админ кнопку
         adminBtn.addEventListener('click', function() {
@@ -244,7 +283,6 @@
             const password = document.getElementById('password').value;
 
             if (username === 'Mick' && password === 'mickfortuna') {
-                // Успешный вход - переходим на admin.html
                 window.location.href = 'admin.html';
             } else {
                 errorDiv.textContent = 'Неверный логин или пароль!';
@@ -262,7 +300,7 @@
         function initPrizes() {
             const prizesList = document.getElementById('prizesList');
             prizesList.innerHTML = '';
-            prizes.forEach(prize => {
+            wheelData.prizes.forEach(prize => {
                 const prizeElement = document.createElement('div');
                 prizeElement.className = 'prize-item';
                 prizeElement.textContent = prize;
@@ -272,11 +310,16 @@
         
         // Функция вращения
         function spinWheel() {
-            if (!isWheelOpen || isSpinning) return;
+            if (!wheelData.isWheelOpen || isSpinning) return;
             
             isSpinning = true;
-            totalSpins++;
-            document.getElementById('totalSpins').textContent = totalSpins;
+            wheelData.totalSpins++;
+            wheelData.totalUsers++;
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('wheelData', JSON.stringify(wheelData));
+            
+            updateDisplay();
             
             const wheel = document.getElementById('wheel');
             const degrees = 1800 + Math.random() * 1800;
@@ -285,8 +328,8 @@
             
             setTimeout(() => {
                 isSpinning = false;
-                // Здесь можно добавить логику определения выигрыша
-                alert(`Вы выиграли: ${prizes[Math.floor(Math.random() * prizes.length)]}`);
+                const winningPrize = wheelData.prizes[Math.floor(Math.random() * wheelData.prizes.length)];
+                alert(`🎉 Поздравляем! Вы выиграли: ${winningPrize}`);
             }, 4000);
         }
         
@@ -297,7 +340,7 @@
             const closedText = spinBtn.querySelector('.closed-text');
             const normalText = spinBtn.querySelector('span:first-child');
             
-            if (isWheelOpen) {
+            if (wheelData.isWheelOpen) {
                 spinBtn.disabled = false;
                 normalText.style.display = 'inline';
                 closedText.style.display = 'none';
@@ -312,28 +355,19 @@
             }
         }
         
-        // Имитация получения данных с сервера
-        function fetchData() {
-            // В реальном приложении здесь был бы fetch запрос
-            setTimeout(() => {
-                // Обновляем данные каждые 5 секунд
-                totalUsers = Math.floor(Math.random() * 100) + 50;
-                document.getElementById('totalUsers').textContent = totalUsers;
-                fetchData();
-            }, 5000);
+        // Автообновление данных
+        function startAutoUpdate() {
+            setInterval(() => {
+                // Обновляем данные каждые 3 секунды
+                wheelData = JSON.parse(localStorage.getItem('wheelData')) || wheelData;
+                updateDisplay();
+            }, 3000);
         }
         
         // Инициализация
         document.getElementById('spinBtn').addEventListener('click', spinWheel);
-        initPrizes();
-        updateWheelStatus();
-        fetchData();
-        
-        // Для тестирования - можно менять статус в консоли
-        window.toggleWheel = function() {
-            isWheelOpen = !isWheelOpen;
-            updateWheelStatus();
-        };
+        initWheel();
+        startAutoUpdate();
     </script>
 </body>
 </html>
