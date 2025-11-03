@@ -104,6 +104,69 @@
             border-radius: 10px;
             margin: 20px 0;
         }
+
+        /* Стили для скрытой админ кнопки */
+        .admin-btn {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+            border-radius: 2px;
+        }
+
+        .admin-btn:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* Модальное окно авторизации */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .modal input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .modal button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .error {
+            color: red;
+            font-size: 12px;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -135,6 +198,21 @@
         </div>
     </div>
 
+    <!-- Скрытая кнопка админа -->
+    <div class="admin-btn" id="adminBtn" title="Панель управления"></div>
+
+    <!-- Модальное окно авторизации -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h3>Вход в админку</h3>
+            <input type="text" id="username" placeholder="Логин">
+            <input type="password" id="password" placeholder="Пароль">
+            <div id="error" class="error"></div>
+            <button onclick="checkLogin()">Войти</button>
+            <button onclick="closeModal()">Отмена</button>
+        </div>
+    </div>
+
     <script>
         let isSpinning = false;
         let totalSpins = 0;
@@ -142,6 +220,44 @@
         let isWheelOpen = true;
         let prizes = ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз'];
         
+        // Элементы модального окна
+        const adminBtn = document.getElementById('adminBtn');
+        const loginModal = document.getElementById('loginModal');
+        const errorDiv = document.getElementById('error');
+
+        // Открыть модальное окно при клике на админ кнопку
+        adminBtn.addEventListener('click', function() {
+            loginModal.style.display = 'block';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            errorDiv.textContent = '';
+        });
+
+        // Закрыть модальное окно
+        function closeModal() {
+            loginModal.style.display = 'none';
+        }
+
+        // Проверка логина и пароля
+        function checkLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === 'Mick' && password === 'mickfortuna') {
+                // Успешный вход - переходим на admin.html
+                window.location.href = 'admin.html';
+            } else {
+                errorDiv.textContent = 'Неверный логин или пароль!';
+            }
+        }
+
+        // Закрыть модальное окно при клике вне его
+        window.addEventListener('click', function(event) {
+            if (event.target === loginModal) {
+                closeModal();
+            }
+        });
+
         // Инициализация призов
         function initPrizes() {
             const prizesList = document.getElementById('prizesList');
