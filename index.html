@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Колесо Фортуны</title>
+    <title>Фортуна</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,7 +15,7 @@
         }
         
         .container {
-            max-width: 800px;
+            max-width: 500px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -23,41 +23,35 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         
-        .wheel-container {
+        .fortune-circle {
             position: relative;
-            width: 400px;
-            height: 400px;
+            width: 300px;
+            height: 300px;
             margin: 20px auto;
-        }
-        
-        #wheel {
-            width: 100%;
-            height: 100%;
             border-radius: 50%;
-            position: relative;
-            transition: transform 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+            background: conic-gradient(
+                #ff6b6b, #ffa500, #ffd700, #90ee90, #87ceeb
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             box-shadow: 0 0 20px rgba(0,0,0,0.2);
-            transform: rotate(0deg);
         }
         
-        .wheel-segment {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%);
-            transform-origin: center;
-        }
-        
-        .pointer {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
-            background: #ff4757;
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-            z-index: 10;
+        .fortune-text {
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 50%;
+            width: 150px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
         
         .spin-btn {
@@ -70,6 +64,7 @@
             cursor: pointer;
             margin: 20px 0;
             transition: all 0.3s;
+            width: 200px;
         }
         
         .spin-btn:hover {
@@ -90,18 +85,20 @@
         }
         
         .prizes-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             margin: 20px 0;
+            align-items: center;
         }
         
         .prize-item {
             background: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 10px 20px;
+            border-radius: 20px;
             border: 2px solid #e9ecef;
-            text-align: center;
+            font-size: 16px;
+            min-width: 200px;
         }
         
         .stats {
@@ -109,6 +106,7 @@
             padding: 15px;
             border-radius: 10px;
             margin: 20px 0;
+            font-size: 14px;
         }
 
         /* Стили для скрытой админ кнопки */
@@ -173,36 +171,37 @@
             font-size: 12px;
             margin: 5px 0;
         }
+
+        .nothing {
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎡 Колесо Фортуны 🎡</h1>
+        <h1>Фортуна</h1>
         
-        <div class="wheel-container">
-            <div class="pointer"></div>
-            <div id="wheel">
-                <!-- Сегменты рулетки будут создаваться динамически -->
-            </div>
+        <div class="fortune-circle">
+            <div class="fortune-text">КРУГ<br>ФОРТУНЫ</div>
         </div>
         
         <button id="spinBtn" class="spin-btn">
-            <span>Крутить рулетку!</span>
-            <span class="closed-text" style="display: none;">РУЛЕТКА ЗАКРЫТА</span>
+            <span>Крутить</span>
+            <span class="closed-text" style="display: none;">ЗАКРЫТА</span>
         </button>
-        
-        <div class="stats">
-            <h3>Статистика:</h3>
-            <p>Всего круток: <span id="totalSpins">0</span></p>
-            <p>Участников: <span id="totalUsers">0</span></p>
-            <p>Статус: <span id="status">Открыта</span></p>
-        </div>
         
         <div class="prizes">
             <h3>Призы:</h3>
             <div class="prizes-list" id="prizesList">
                 <!-- Призы будут добавляться здесь -->
             </div>
+        </div>
+
+        <div class="stats">
+            <p>Всего круток: <span id="totalSpins">0</span></p>
+            <p>Участников: <span id="totalUsers">0</span></p>
+            <p>Статус: <span id="status">Открыта</span></p>
         </div>
     </div>
 
@@ -227,34 +226,15 @@
             isWheelOpen: true,
             totalSpins: 0,
             totalUsers: 85,
-            prizes: ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз']
+            prizes: ['100 рублей', '500 рублей', 'Бонус 50%', 'Ничего']
         };
 
         let isSpinning = false;
-        const colors = ['#ff6b6b', '#ffa500', '#ffd700', '#90ee90', '#87ceeb', '#9370db', '#ff69b4', '#20b2aa'];
 
         // Элементы модального окна
         const adminBtn = document.getElementById('adminBtn');
         const loginModal = document.getElementById('loginModal');
         const errorDiv = document.getElementById('error');
-
-        // Инициализация рулетки
-        function initWheel() {
-            const wheel = document.getElementById('wheel');
-            wheel.innerHTML = '';
-            
-            const segmentAngle = 360 / wheelData.prizes.length;
-            
-            wheelData.prizes.forEach((prize, index) => {
-                const segment = document.createElement('div');
-                segment.className = 'wheel-segment';
-                segment.style.transform = `rotate(${index * segmentAngle}deg)`;
-                segment.style.backgroundColor = colors[index % colors.length];
-                wheel.appendChild(segment);
-            });
-            
-            updateDisplay();
-        }
 
         // Обновление отображения
         function updateDisplay() {
@@ -303,6 +283,9 @@
             wheelData.prizes.forEach(prize => {
                 const prizeElement = document.createElement('div');
                 prizeElement.className = 'prize-item';
+                if (prize === 'Ничего') {
+                    prizeElement.classList.add('nothing');
+                }
                 prizeElement.textContent = prize;
                 prizesList.appendChild(prizeElement);
             });
@@ -321,16 +304,16 @@
             
             updateDisplay();
             
-            const wheel = document.getElementById('wheel');
-            const degrees = 1800 + Math.random() * 1800;
-            
-            wheel.style.transform = `rotate(${degrees}deg)`;
+            // Анимация кручения
+            const circle = document.querySelector('.fortune-circle');
+            circle.style.transform = 'scale(0.95)';
             
             setTimeout(() => {
+                circle.style.transform = 'scale(1)';
                 isSpinning = false;
                 const winningPrize = wheelData.prizes[Math.floor(Math.random() * wheelData.prizes.length)];
-                alert(`🎉 Поздравляем! Вы выиграли: ${winningPrize}`);
-            }, 4000);
+                alert(`🎉 ${winningPrize === 'Ничего' ? 'К сожалению, вы ничего не выиграли' : `Вы выиграли: ${winningPrize}`}`);
+            }, 1000);
         }
         
         // Обновление статуса рулетки
@@ -366,7 +349,7 @@
         
         // Инициализация
         document.getElementById('spinBtn').addEventListener('click', spinWheel);
-        initWheel();
+        updateDisplay();
         startAutoUpdate();
     </script>
 </body>
