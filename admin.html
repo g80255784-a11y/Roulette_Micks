@@ -34,6 +34,7 @@
             cursor: pointer;
             font-size: 16px;
             margin: 5px;
+            transition: all 0.3s;
         }
         
         .btn-open {
@@ -41,14 +42,35 @@
             color: white;
         }
         
+        .btn-open:hover {
+            background: #218838;
+        }
+        
         .btn-close {
             background: #dc3545;
             color: white;
         }
         
+        .btn-close:hover {
+            background: #c82333;
+        }
+        
         .btn-save {
             background: #007bff;
             color: white;
+        }
+        
+        .btn-save:hover {
+            background: #0056b3;
+        }
+        
+        .btn-back {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-back:hover {
+            background: #545b62;
         }
         
         .status {
@@ -99,12 +121,36 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎮 Панель управления рулеткой</h1>
+        <button class="btn btn-back" onclick="window.location.href='index.html'">← Назад к рулетке</button>
+        
+        <div id="successMessage" class="success-message"></div>
         
         <div class="control-panel">
             <h3>Управление статусом рулетки:</h3>
@@ -127,41 +173,87 @@
         <div class="control-panel">
             <h3>Статистика и настройки:</h3>
             <div class="stats-control">
-                <div>
+                <div class="control-group">
                     <label>Всего круток:</label>
                     <input type="number" id="totalSpinsInput" class="stat-input" value="0" min="0">
                 </div>
-                <div>
+                <div class="control-group">
                     <label>Количество участников:</label>
                     <input type="number" id="totalUsersInput" class="stat-input" value="0" min="0">
                 </div>
             </div>
             <button class="btn btn-save" onclick="saveStats()">Сохранить статистику</button>
+            <button class="btn" onclick="resetStats()" style="background: #ffc107;">Сбросить статистику</button>
         </div>
         
         <div class="control-panel">
             <h3>Быстрые команды:</h3>
-            <button class="btn btn-save" onclick="resetAll()">Сбросить всё</button>
-            <button class="btn btn-save" onclick="simulateSpin()">Симулировать круток (10)</button>
+            <button class="btn btn-save" onclick="simulateSpins(10)">Симулировать 10 круток</button>
+            <button class="btn btn-save" onclick="simulateSpins(50)">Симулировать 50 круток</button>
+            <button class="btn" onclick="resetAll()" style="background: #dc3545; color: white;">Полный сброс</button>
         </div>
     </div>
 
     <script>
-        let prizes = ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз'];
-        let isWheelOpen = true;
-        let totalSpins = 0;
-        let totalUsers = 0;
-        
+        let wheelData = JSON.parse(localStorage.getItem('wheelData')) || {
+            isWheelOpen: true,
+            totalSpins: 0,
+            totalUsers: 85,
+            prizes: ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз']
+        };
+
+        // Загрузка данных при открытии
+        function loadData() {
+            const savedData = localStorage.getItem('wheelData');
+            if (savedData) {
+                wheelData = JSON.parse(savedData);
+            }
+            updateDisplay();
+        }
+
+        // Сохранение данных
+        function saveData() {
+            localStorage.setItem('wheelData', JSON.stringify(wheelData));
+            showSuccess('Данные сохранены!');
+        }
+
+        // Показать сообщение об успехе
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Обновление отображения
+        function updateDisplay() {
+            document.getElementById('totalSpinsInput').value = wheelData.totalSpins;
+            document.getElementById('totalUsersInput').value = wheelData.totalUsers;
+            
+            const statusDiv = document.getElementById('currentStatus');
+            if (wheelData.isWheelOpen) {
+                statusDiv.className = 'status status-open';
+                statusDiv.textContent = 'Текущий статус: ОТКРЫТА';
+            } else {
+                statusDiv.className = 'status status-closed';
+                statusDiv.textContent = 'Текущий статус: ЗАКРЫТА';
+            }
+            
+            initPrizes();
+        }
+
         // Инициализация призов
         function initPrizes() {
             const container = document.getElementById('prizesContainer');
             container.innerHTML = '';
             
-            prizes.forEach((prize, index) => {
+            wheelData.prizes.forEach((prize, index) => {
                 const prizeDiv = document.createElement('div');
                 prizeDiv.className = 'prize-item';
                 prizeDiv.innerHTML = `
-                    <input type="text" class="prize-input" value="${prize}" data-index="${index}">
+                    <input type="text" class="prize-input" value="${prize}" data-index="${index}" placeholder="Название приза">
                     <button class="btn" onclick="removePrize(${index})" style="background: #dc3545; color: white;">×</button>
                 `;
                 container.appendChild(prizeDiv);
@@ -170,15 +262,17 @@
         
         // Добавить приз
         function addPrize() {
-            prizes.push('Новый приз');
+            wheelData.prizes.push('Новый приз');
             initPrizes();
+            showSuccess('Приз добавлен!');
         }
         
         // Удалить приз
         function removePrize(index) {
-            if (prizes.length > 1) {
-                prizes.splice(index, 1);
+            if (wheelData.prizes.length > 1) {
+                wheelData.prizes.splice(index, 1);
                 initPrizes();
+                showSuccess('Приз удален!');
             } else {
                 alert('Должен остаться хотя бы один приз!');
             }
@@ -187,63 +281,68 @@
         // Сохранить призы
         function savePrizes() {
             const inputs = document.querySelectorAll('.prize-input');
-            prizes = Array.from(inputs).map(input => input.value);
-            alert('Призы сохранены!');
-            // В реальном приложении здесь был бы запрос на сервер
+            wheelData.prizes = Array.from(inputs).map(input => input.value);
+            saveData();
         }
         
         // Установить статус рулетки
         function setWheelStatus(open) {
-            isWheelOpen = open;
-            const statusDiv = document.getElementById('currentStatus');
-            
-            if (open) {
-                statusDiv.className = 'status status-open';
-                statusDiv.textContent = 'Текущий статус: ОТКРЫТА';
-            } else {
-                statusDiv.className = 'status status-closed';
-                statusDiv.textContent = 'Текущий статус: ЗАКРЫТА';
-            }
-            
-            // В реальном приложении здесь был бы запрос на сервер
-            console.log(`Рулетка ${open ? 'открыта' : 'закрыта'}`);
+            wheelData.isWheelOpen = open;
+            saveData();
+            updateDisplay();
         }
         
         // Сохранить статистику
         function saveStats() {
-            totalSpins = parseInt(document.getElementById('totalSpinsInput').value) || 0;
-            totalUsers = parseInt(document.getElementById('totalUsersInput').value) || 0;
-            alert('Статистика сохранена!');
-            // В реальном приложении здесь был бы запрос на сервер
+            wheelData.totalSpins = parseInt(document.getElementById('totalSpinsInput').value) || 0;
+            wheelData.totalUsers = parseInt(document.getElementById('totalUsersInput').value) || 0;
+            saveData();
         }
         
-        // Сбросить всё
+        // Сбросить статистику
+        function resetStats() {
+            if (confirm('Вы уверены, что хотите сбросить статистику?')) {
+                wheelData.totalSpins = 0;
+                wheelData.totalUsers = 85;
+                saveData();
+                updateDisplay();
+            }
+        }
+        
+        // Полный сброс
         function resetAll() {
-            if (confirm('Вы уверены, что хотите сбросить все настройки?')) {
-                prizes = ['Приз 1', 'Приз 2', 'Приз 3'];
-                totalSpins = 0;
-                totalUsers = 0;
-                document.getElementById('totalSpinsInput').value = '0';
-                document.getElementById('totalUsersInput').value = '0';
-                initPrizes();
-                setWheelStatus(true);
-                alert('Все настройки сброшены!');
+            if (confirm('ВНИМАНИЕ! Это сбросит ВСЕ настройки. Продолжить?')) {
+                wheelData = {
+                    isWheelOpen: true,
+                    totalSpins: 0,
+                    totalUsers: 85,
+                    prizes: ['100 рублей', '500 рублей', 'Бонус 50%', 'Фриспин', 'Удвоение', 'Ничего', 'Скидка 20%', 'Приз']
+                };
+                saveData();
+                updateDisplay();
+                showSuccess('Все настройки сброшены!');
             }
         }
         
         // Симуляция круток
-        function simulateSpin() {
-            const currentSpins = parseInt(document.getElementById('totalSpinsInput').value) || 0;
-            document.getElementById('totalSpinsInput').value = currentSpins + 10;
-            document.getElementById('totalUsersInput').value = Math.floor(Math.random() * 50) + currentSpins;
-            saveStats();
-            alert('10 круток симулировано!');
+        function simulateSpins(count) {
+            wheelData.totalSpins += count;
+            wheelData.totalUsers += count;
+            saveData();
+            updateDisplay();
+            showSuccess(`Симулировано ${count} круток!`);
+        }
+        
+        // Автообновление данных
+        function startAutoUpdate() {
+            setInterval(() => {
+                loadData();
+            }, 2000);
         }
         
         // Инициализация
-        initPrizes();
-        document.getElementById('totalSpinsInput').value = totalSpins;
-        document.getElementById('totalUsersInput').value = totalUsers;
+        loadData();
+        startAutoUpdate();
     </script>
 </body>
 </html>
